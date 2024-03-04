@@ -4,6 +4,9 @@ using Microsoft.CodeAnalysis.Emit;
 
 namespace SandpitDotNet;
 
+/**
+ * Playing with Microsoft.CodeAnalysis.CSharp.
+ */
 public class CodeAnalysisCompiler {
   private const string firstClass =
     @"
@@ -56,11 +59,11 @@ public class CodeAnalysisCompiler {
     var secondAssemblyFileName = Path.Combine(Path.GetTempPath(), "B.dll");
     var thirdAssemblyFileName = Path.Combine(Path.GetTempPath(), "C.dll");
 
-    var compilation = CreateCompilation(CSharpSyntaxTree.ParseText(firstClass), "A");
+    CSharpCompilation compilation = CreateCompilation(CSharpSyntaxTree.ParseText(firstClass), "A");
     // var secondCompilation = CreateCompilation(CSharpSyntaxTree.ParseText(secondClass), "B")
-      // .AddReferences(compilation.ToMetadataReference());
-    var secondCompilation = CreateCompilation(CSharpSyntaxTree.ParseText(secondClass), "B");
-    var thirdCompilation = CreateCompilation(CSharpSyntaxTree.ParseText(thirdClass), "C");
+    // .AddReferences(compilation.ToMetadataReference());
+    CSharpCompilation secondCompilation = CreateCompilation(CSharpSyntaxTree.ParseText(secondClass), "B");
+    CSharpCompilation thirdCompilation = CreateCompilation(CSharpSyntaxTree.ParseText(thirdClass), "C");
 
     EmitResult emitResult1 = compilation.Emit(firstAssemblyFileName);
     EmitResult emitResult2 = secondCompilation.Emit(secondAssemblyFileName);
@@ -69,10 +72,17 @@ public class CodeAnalysisCompiler {
     WriteResult(emitResult1);
     WriteResult(emitResult2);
     WriteResult(emitResult3);
-    
+
     // dynamic testType = Activator.CreateInstanceFrom(secondAssemblyFileName, "B.Test").Unwrap();
     // var value = testType.GetValue();
     // Console.WriteLine($"\ntestType.GetValue() = {value}");
+  }
+
+  private static CSharpCompilation CreateCompilation(SyntaxTree tree, string name) {
+    return CSharpCompilation
+      .Create(name, options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+      .AddReferences(MetadataReference.CreateFromFile(typeof(string).Assembly.Location))
+      .AddSyntaxTrees(tree);
   }
 
   private void WriteResult(EmitResult result) {
@@ -85,12 +95,5 @@ public class CodeAnalysisCompiler {
                         $"{diagnostic.GetMessage()}");
       // Console.WriteLine($"{diagnostic.Descriptor.HelpLinkUri}");
     }
-  }
-
-  private static CSharpCompilation CreateCompilation(SyntaxTree tree, string name) {
-    return CSharpCompilation
-      .Create(name, options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
-      .AddReferences(MetadataReference.CreateFromFile(typeof(string).Assembly.Location))
-      .AddSyntaxTrees(tree);
   }
 }
